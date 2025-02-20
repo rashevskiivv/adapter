@@ -1,0 +1,123 @@
+version: '3.9'
+# Migrations https://docs.docker.com/compose/compose-file/05-services/#volumes
+
+services:
+  auth-app:
+    container_name: auth-app
+    image: ${AUTH_APP_IMAGE}:${AUTH_APP_IMAGE_TAG}
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    expose:
+      - ${AUTH_APP_PORT}
+    ports:
+      - "${AUTH_APP_PORT}:${AUTH_APP_PORT}"
+    depends_on:
+      - auth-db
+    command: [ "/go/bin/auth-app" ]
+
+  auth-db:
+    container_name: auth-db
+    image: ${DB_IMAGE}:${DB_IMAGE_TAG}
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - ${AUTH_DB_PORT}:${AUTH_DB_PORT}
+
+  auth-migrate:
+    container_name: auth-migrations
+    image: ${MIGRATE_IMAGE}:${MIGRATE_TAG}
+    env_file:
+      - ./.env
+    volumes:
+      - ../internal/migrations:/migrations
+    depends_on:
+      - postgres_db
+    command: [
+      "-locations=filesystem:/migrations/",
+      "-url=jdbc:${AUTH_DB_DRIVER}://${AUTH_DB_HOST}:${AUTH_DB_PORT}/${AUTH_DB_DB}?sslmode=disable",
+      "-user=${AUTH_DB_USER}",
+      "-password=${AUTH_DB_PASSWORD}",
+      "-schemas=public",
+      "-validateMigrationNaming=true",
+      "-outOfOrder=true",
+      "-connectRetries=3",
+      "migrate"
+    ]
+
+  api-app:
+    container_name: api-app
+    image: ${API_APP_IMAGE}:${API_APP_IMAGE_TAG}
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    expose:
+      - ${API_APP_PORT}
+    ports:
+      - "${API_APP_PORT}:${API_APP_PORT}"
+    depends_on:
+      - api-db
+    command: [ "/go/bin/api-app" ]
+
+  api-db:
+    container_name: api-db
+    image: ${DB_IMAGE}:${DB_IMAGE_TAG}
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - ${API_DB_PORT}:${API_DB_PORT}
+
+  api-migrate:
+    container_name: api-migrations
+    image: ${MIGRATE_IMAGE}:${MIGRATE_TAG}
+    env_file:
+      - ./.env
+    volumes:
+      - ../internal/migrations:/migrations
+    depends_on:
+      - postgres_db
+    command: [
+      "-locations=filesystem:/migrations/",
+      "-url=jdbc:${API_DB_DRIVER}://${API_DB_HOST}:${API_DB_PORT}/${API_DB_DB}?sslmode=disable",
+      "-user=${API_DB_USER}",
+      "-password=${API_DB_PASSWORD}",
+      "-schemas=public",
+      "-validateMigrationNaming=true",
+      "-outOfOrder=true",
+      "-connectRetries=3",
+      "migrate"
+    ]
+
+  nginx:
+    container_name: nginx
+    image: nginx_local:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - auth-app
+      - api-app
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+#    networks:
+#      - inner-network
+
+
+#networks:
+#  inner-network:
+#    driver: bridge
+
+volumes:
+  auth-pgdata:
+  api-pgdata:
