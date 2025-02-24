@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     env_file:
       - ./.env
-    expose:
+    expose: # todo delete?
       - ${AUTH_APP_PORT}
     ports:
       - "${AUTH_APP_PORT}:${AUTH_APP_PORT}"
@@ -41,7 +41,7 @@ services:
       - postgres_db
     command: [
       "-locations=filesystem:/migrations/",
-      "-url=jdbc:${AUTH_DB_DRIVER}://${AUTH_DB_HOST}:${AUTH_DB_PORT}/${AUTH_DB_DB}?sslmode=disable",
+      "-url=jdbc:${DB_DRIVER}://${AUTH_DB_HOST}:${AUTH_DB_PORT}/${AUTH_DB_NAME}?sslmode=disable",
       "-user=${AUTH_DB_USER}",
       "-password=${AUTH_DB_PASSWORD}",
       "-schemas=public",
@@ -57,7 +57,7 @@ services:
     restart: unless-stopped
     env_file:
       - ./.env
-    expose:
+    expose: # todo delete?
       - ${API_APP_PORT}
     ports:
       - "${API_APP_PORT}:${API_APP_PORT}"
@@ -90,7 +90,7 @@ services:
       - postgres_db
     command: [
       "-locations=filesystem:/migrations/",
-      "-url=jdbc:${API_DB_DRIVER}://${API_DB_HOST}:${API_DB_PORT}/${API_DB_DB}?sslmode=disable",
+      "-url=jdbc:${DB_DRIVER}://${API_DB_HOST}:${API_DB_PORT}/${API_DB_NAME}?sslmode=disable",
       "-user=${API_DB_USER}",
       "-password=${API_DB_PASSWORD}",
       "-schemas=public",
@@ -102,14 +102,22 @@ services:
 
   nginx:
     container_name: nginx
-    image: nginx_local:latest
+    restart: unless-stopped
+    image: ${NGINX_IMAGE}:${NGINX_IMAGE_TAG}
+#    image: nginx_local:latest
+    expose:
+      - ${NGINX_PORT}
     ports:
-      - "80:80"
+      - "${NGINX_PORT}:${NGINX_PORT}"
     depends_on:
       - auth-app
       - api-app
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - type: bind
+        source: ./nginx.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+#      - ./nginx.conf:/etc/nginx/nginx.conf
 #    networks:
 #      - inner-network
 
