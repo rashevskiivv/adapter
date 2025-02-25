@@ -4,11 +4,11 @@ version: '3.9'
 services:
   auth-app:
     container_name: auth-app
-    image: ${AUTH_APP_IMAGE}:${AUTH_APP_IMAGE_TAG}
+    image: ${AUTH_APP_IMAGE}:${AUTH_APP_IMAGE_TAG}  # todo put in readme that make compile for app and than docker compose up
     restart: unless-stopped
     env_file:
       - ./.env
-    expose: # todo delete?
+    expose:
       - ${AUTH_APP_PORT}
     ports:
       - "${AUTH_APP_PORT}:${AUTH_APP_PORT}"
@@ -53,11 +53,11 @@ services:
 
   api-app:
     container_name: api-app
-    image: ${API_APP_IMAGE}:${API_APP_IMAGE_TAG}
+    image: ${API_APP_IMAGE}:${API_APP_IMAGE_TAG}  # todo put in readme that make compile for app and than docker compose up
     restart: unless-stopped
     env_file:
       - ./.env
-    expose: # todo delete?
+    expose:
       - ${API_APP_PORT}
     ports:
       - "${API_APP_PORT}:${API_APP_PORT}"
@@ -105,6 +105,8 @@ services:
     restart: unless-stopped
     image: ${NGINX_IMAGE}:${NGINX_IMAGE_TAG}
 #    image: nginx_local:latest
+    env_file:
+      - ./.env
     expose:
       - ${NGINX_PORT}
     ports:
