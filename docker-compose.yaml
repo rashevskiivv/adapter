@@ -2,73 +2,26 @@ version: '3.9'
 # Migrations https://docs.docker.com/compose/compose-file/05-services/#volumes
 
 services:
-  auth-app:
-    container_name: auth-app
-    image: ${AUTH_APP_IMAGE}:${AUTH_APP_IMAGE_TAG}  # todo put in readme that make compile for app and than docker compose up
-    restart: unless-stopped
-    env_file:
-      - ./.env
-    expose:
-      - ${AUTH_APP_PORT}
-    ports:
-      - "${AUTH_APP_PORT}:${AUTH_APP_PORT}"
-    depends_on:
-      - auth-db
-    command: [ "/go/bin/auth-app" ]
-
-  auth-db:
-    container_name: auth-db
-    image: ${DB_IMAGE}:${DB_IMAGE_TAG}
-    restart: unless-stopped
-    env_file:
-      - ./.env
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    ports:
-      - ${AUTH_DB_PORT}:${AUTH_DB_PORT}
-
-  auth-migrate:
-    container_name: auth-migrations
-    image: ${MIGRATE_IMAGE}:${MIGRATE_TAG}
-    env_file:
-      - ./.env
-    volumes:
-      - ../internal/migrations:/migrations
-    depends_on:
-      - postgres_db
-    command: [
-      "-locations=filesystem:/migrations/",
-      "-url=jdbc:${DB_DRIVER}://${AUTH_DB_HOST}:${AUTH_DB_PORT}/${AUTH_DB_NAME}?sslmode=disable",
-      "-user=${AUTH_DB_USER}",
-      "-password=${AUTH_DB_PASSWORD}",
-      "-schemas=public",
-      "-validateMigrationNaming=true",
-      "-outOfOrder=true",
-      "-connectRetries=3",
-      "migrate"
-    ]
-
   api-app:
     container_name: api-app
     image: ${API_APP_IMAGE}:${API_APP_IMAGE_TAG}  # todo put in readme that make compile for app and than docker compose up
     restart: unless-stopped
     env_file:
       - ./.env
-    expose:
-      - ${API_APP_PORT}
     ports:
-      - "${API_APP_PORT}:${API_APP_PORT}"
+      - "${API_APP_PORT}:${DEFAULT_APP_PORT}"
     depends_on:
       - api-db
     command: [ "/go/bin/api-app" ]
 
   api-db:
     container_name: api-db
-    image: ${DB_IMAGE}:${DB_IMAGE_TAG}
+    image: ${API_DB_IMAGE}:${API_DB_IMAGE_TAG}
     restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${API_DB_USER}
+      POSTGRES_PASSWORD: ${API_DB_PASSWORD}
+      POSTGRES_DB: ${API_DB_NAME}
     env_file:
       - ./.env
     healthcheck:
@@ -77,7 +30,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - ${API_DB_PORT}:${API_DB_PORT}
+      - ${API_DB_PORT}:${DEFAULT_DB_PORT}
 
   api-migrate:
     container_name: api-migrations
@@ -87,12 +40,63 @@ services:
     volumes:
       - ../internal/migrations:/migrations
     depends_on:
-      - postgres_db
+      - api-db
     command: [
       "-locations=filesystem:/migrations/",
-      "-url=jdbc:${DB_DRIVER}://${API_DB_HOST}:${API_DB_PORT}/${API_DB_NAME}?sslmode=disable",
+      "-url=jdbc:${DB_DRIVER}://${API_DB_HOST}:${DEFAULT_DB_PORT}/${API_DB_NAME}?sslmode=disable",
       "-user=${API_DB_USER}",
       "-password=${API_DB_PASSWORD}",
+      "-schemas=public",
+      "-validateMigrationNaming=true",
+      "-outOfOrder=true",
+      "-connectRetries=3",
+      "migrate"
+    ]
+
+  auth-app:
+    container_name: auth-app
+    image: ${AUTH_APP_IMAGE}:${AUTH_APP_IMAGE_TAG}  # todo put in readme that make compile for app and than docker compose up
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    ports:
+      - "${AUTH_APP_PORT}:${DEFAULT_APP_PORT}"
+    depends_on:
+      - auth-db
+    command: [ "/go/bin/auth-app" ]
+
+  auth-db:
+    container_name: auth-db
+    image: ${AUTH_DB_IMAGE}:${AUTH_DB_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+      POSTGRES_DB: ${AUTH_DB_NAME}
+    env_file:
+      - ./.env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - ${AUTH_DB_PORT}:${DEFAULT_DB_PORT}
+
+  auth-migrate:
+    container_name: auth-migrations
+    image: ${MIGRATE_IMAGE}:${MIGRATE_TAG}
+    env_file:
+      - ./.env
+    volumes:
+      - ../internal/migrations:/migrations
+    depends_on:
+      - auth-db
+    command: [
+      "-locations=filesystem:/migrations/",
+      "-url=jdbc:${DB_DRIVER}://${AUTH_DB_HOST}:${DEFAULT_DB_PORT}/${AUTH_DB_NAME}?sslmode=disable",
+      "-user=${AUTH_DB_USER}",
+      "-password=${AUTH_DB_PASSWORD}",
       "-schemas=public",
       "-validateMigrationNaming=true",
       "-outOfOrder=true",
@@ -104,24 +108,24 @@ services:
     container_name: nginx
     restart: unless-stopped
     image: ${NGINX_IMAGE}:${NGINX_IMAGE_TAG}
-#    image: nginx_local:latest
     env_file:
       - ./.env
     expose:
       - ${NGINX_PORT}
     ports:
       - "${NGINX_PORT}:${NGINX_PORT}"
+      - "${NGINX_PORT_SECURE}:${NGINX_PORT_SECURE}"
     depends_on:
-      - auth-app
       - api-app
+      - auth-app
     volumes:
       - type: bind
         source: ./nginx.conf
         target: /etc/nginx/conf.d/default.conf
         read_only: true
-#      - ./nginx.conf:/etc/nginx/nginx.conf
-#    networks:
-#      - inner-network
+  #      - ./nginx.conf:/etc/nginx/nginx.conf
+  #    networks:
+  #      - inner-network
 
 
 #networks:
