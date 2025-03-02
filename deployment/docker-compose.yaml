@@ -7,7 +7,7 @@ services:
     image: ${API_APP_IMAGE}:${API_APP_IMAGE_TAG}  # todo put in readme that make compile for app and than docker compose up
     restart: unless-stopped
     env_file:
-      - ./.env
+      - .env
     ports:
       - "${API_APP_PORT}:${DEFAULT_APP_PORT}"
     depends_on:
@@ -23,7 +23,7 @@ services:
       POSTGRES_PASSWORD: ${API_DB_PASSWORD}
       POSTGRES_DB: ${API_DB_NAME}
     env_file:
-      - ./.env
+      - .env
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
@@ -36,9 +36,9 @@ services:
     container_name: api-migrations
     image: ${MIGRATE_IMAGE}:${MIGRATE_TAG}
     env_file:
-      - ./.env
+      - .env
     volumes:
-      - ../internal/migrations:/migrations
+      - ../services/api/internal/migrations:/migrations
     depends_on:
       - api-db
     command: [
@@ -58,7 +58,7 @@ services:
     image: ${AUTH_APP_IMAGE}:${AUTH_APP_IMAGE_TAG}  # todo put in readme that make compile for app and than docker compose up
     restart: unless-stopped
     env_file:
-      - ./.env
+      - .env
     ports:
       - "${AUTH_APP_PORT}:${DEFAULT_APP_PORT}"
     depends_on:
@@ -74,7 +74,7 @@ services:
       POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
       POSTGRES_DB: ${AUTH_DB_NAME}
     env_file:
-      - ./.env
+      - .env
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
@@ -87,9 +87,9 @@ services:
     container_name: auth-migrations
     image: ${MIGRATE_IMAGE}:${MIGRATE_TAG}
     env_file:
-      - ./.env
+      - .env
     volumes:
-      - ../internal/migrations:/migrations
+      - ../services/auth/internal/migrations:/migrations
     depends_on:
       - auth-db
     command: [
@@ -109,9 +109,10 @@ services:
     restart: unless-stopped
     image: ${NGINX_IMAGE}:${NGINX_IMAGE_TAG}
     env_file:
-      - ./.env
+      - .env
     expose:
       - ${NGINX_PORT}
+      - ${NGINX_PORT_SECURE}
     ports:
       - "${NGINX_PORT}:${NGINX_PORT}"
       - "${NGINX_PORT_SECURE}:${NGINX_PORT_SECURE}"
@@ -120,7 +121,7 @@ services:
       - auth-app
     volumes:
       - type: bind
-        source: ./nginx.conf
+        source: ../nginx.conf
         target: /etc/nginx/conf.d/default.conf
         read_only: true
   #      - ./nginx.conf:/etc/nginx/nginx.conf

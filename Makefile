@@ -7,9 +7,9 @@ endif
 IMAGE=nginx_local
 TAG=latest
 RELEASE_NAME=nginx
-DC_FILE=-f ${CUR_DIR}/docker-compose.yaml
+DC_FILE=-f ${CUR_DIR}/deployment/docker-compose.yaml
 
-.PHONY: copy-env copy-env-windows deploy delete # compile
+.PHONY: compile copy-env copy-env-windows deploy delete
 
 compile:
 	docker build --no-cache -f .docker/Dockerfile -t ${IMAGE}:${TAG} .
