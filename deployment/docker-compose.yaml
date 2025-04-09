@@ -4,7 +4,7 @@ version: '3.9'
 services:
   api-app:
     container_name: api-app
-    image: ${API_APP_IMAGE}:${API_APP_IMAGE_TAG}  # todo put in readme that make compile for app and than docker compose up
+    image: ${API_APP_IMAGE}:${API_APP_IMAGE_TAG}
     restart: unless-stopped
     env_file:
       - .env
@@ -55,7 +55,7 @@ services:
 
   auth-app:
     container_name: auth-app
-    image: ${AUTH_APP_IMAGE}:${AUTH_APP_IMAGE_TAG}  # todo put in readme that make compile for app and than docker compose up
+    image: ${AUTH_APP_IMAGE}:${AUTH_APP_IMAGE_TAG}
     restart: unless-stopped
     env_file:
       - .env
