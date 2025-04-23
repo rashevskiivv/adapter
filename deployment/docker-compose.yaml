@@ -1,4 +1,5 @@
 version: '3.9'
+name: "ProCareer"
 # Migrations https://docs.docker.com/compose/compose-file/05-services/#volumes
 
 services:
