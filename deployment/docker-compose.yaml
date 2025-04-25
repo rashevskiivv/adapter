@@ -1,11 +1,10 @@
-version: '3.9'
-name: "ProCareer"
+name: "procareer"
 # Migrations https://docs.docker.com/compose/compose-file/05-services/#volumes
 
 services:
   api-app:
     container_name: api-app
-    image: ${API_APP_IMAGE}:${API_APP_IMAGE_TAG}
+    image: ${API_APP_IMAGE}:${TAG}
     restart: unless-stopped
     env_file:
       - .env
@@ -17,12 +16,14 @@ services:
 
   api-db:
     container_name: api-db
-    image: ${API_DB_IMAGE}:${API_DB_IMAGE_TAG}
+    image: ${API_DB_IMAGE}:${TAG}
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${API_DB_USER}
-      POSTGRES_PASSWORD: ${API_DB_PASSWORD}
+      POSTGRES_USER: ${USER_PASSWORD}
+      POSTGRES_PASSWORD: ${USER_PASSWORD}
       POSTGRES_DB: ${API_DB_NAME}
+    volumes:
+      - api-pgdata:/var/lib/postgresql/data
     env_file:
       - .env
     healthcheck:
@@ -45,8 +46,8 @@ services:
     command: [
       "-locations=filesystem:/migrations/",
       "-url=jdbc:${DB_DRIVER}://${API_DB_HOST}:${DEFAULT_DB_PORT}/${API_DB_NAME}?sslmode=disable",
-      "-user=${API_DB_USER}",
-      "-password=${API_DB_PASSWORD}",
+      "-USER_PASSWORD=${USER_PASSWORD}",
+      "-password=${USER_PASSWORD}",
       "-schemas=public",
       "-validateMigrationNaming=true",
       "-outOfOrder=true",
@@ -56,7 +57,7 @@ services:
 
   auth-app:
     container_name: auth-app
-    image: ${AUTH_APP_IMAGE}:${AUTH_APP_IMAGE_TAG}
+    image: ${AUTH_APP_IMAGE}:${TAG}
     restart: unless-stopped
     env_file:
       - .env
@@ -68,12 +69,14 @@ services:
 
   auth-db:
     container_name: auth-db
-    image: ${AUTH_DB_IMAGE}:${AUTH_DB_IMAGE_TAG}
+    image: ${AUTH_DB_IMAGE}:${TAG}
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${AUTH_DB_USER}
-      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+      POSTGRES_USER: ${USER_PASSWORD}
+      POSTGRES_PASSWORD: ${USER_PASSWORD}
       POSTGRES_DB: ${AUTH_DB_NAME}
+    volumes:
+      - auth-pgdata:/var/lib/postgresql/data
     env_file:
       - .env
     healthcheck:
@@ -96,8 +99,8 @@ services:
     command: [
       "-locations=filesystem:/migrations/",
       "-url=jdbc:${DB_DRIVER}://${AUTH_DB_HOST}:${DEFAULT_DB_PORT}/${AUTH_DB_NAME}?sslmode=disable",
-      "-user=${AUTH_DB_USER}",
-      "-password=${AUTH_DB_PASSWORD}",
+      "-user=${USER_PASSWORD}",
+      "-password=${USER_PASSWORD}",
       "-schemas=public",
       "-validateMigrationNaming=true",
       "-outOfOrder=true",
@@ -105,10 +108,43 @@ services:
       "migrate"
     ]
 
+  recommendations-app:
+    container_name: recommendations-app
+    image: ${RECOMMENDATIONS_APP_IMAGE}:${TAG}
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - recommendations-db
+    command: ./entrypoint.sh
+    ports:
+      - "${RECOMMENDATIONS_APP_PORT}:${DEFAULT_APP_PORT}"
+
+  recommendations-db:
+    container_name: recommendations-db
+    image: ${RECOMMENDATIONS_DB_IMAGE}:${TAG}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${USER_PASSWORD}
+      POSTGRES_PASSWORD: ${USER_PASSWORD}
+      POSTGRES_DB: ${RECOMMENDATIONS_DB_NAME}
+    volumes:
+      - recommendations-pgdata:/var/lib/postgresql/data
+    env_file:
+      - .env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - ${RECOMMENDATIONS_DB_PORT}:${DEFAULT_DB_PORT}
+
+
   nginx:
     container_name: nginx
     restart: unless-stopped
-    image: ${NGINX_IMAGE}:${NGINX_IMAGE_TAG}
+    image: ${NGINX_IMAGE}:${TAG}
     env_file:
       - .env
     expose:
@@ -120,6 +156,7 @@ services:
     depends_on:
       - api-app
       - auth-app
+      - recommendations-app
     volumes:
       - type: bind
         source: ../nginx.conf
@@ -137,3 +174,4 @@ services:
 volumes:
   auth-pgdata:
   api-pgdata:
+  recommendations-pgdata:
