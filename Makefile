@@ -21,6 +21,7 @@ run:
 	echo y|rmdir /s services
 	mkdir services
 	cd services && git clone git@github.com:KateMaliutina/recommendations.git
+	cd services/recommendations && sed -i.bak 's/\r$//' entrypoint.sh
 	cd services/recommendations && docker build --no-cache -f Dockerfile -t ${APP_RECOMMENDATIONS_IMAGE}:${TAG} .
 	cd services/recommendations && docker build --no-cache -f PGDockerfile -t ${DB_RECOMMENDATIONS_IMAGE}:${TAG} .
 	cd services && git clone git@github.com:rashevskiivv/api.git
