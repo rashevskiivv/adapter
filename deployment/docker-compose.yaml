@@ -46,7 +46,7 @@ services:
     command: [
       "-locations=filesystem:/migrations/",
       "-url=jdbc:${DB_DRIVER}://${API_DB_HOST}:${DEFAULT_DB_PORT}/${API_DB_NAME}?sslmode=disable",
-      "-USER_PASSWORD=${USER_PASSWORD}",
+      "-user=${USER_PASSWORD}",
       "-password=${USER_PASSWORD}",
       "-schemas=public",
       "-validateMigrationNaming=true",
